@@ -121,9 +121,9 @@ define(['require',
                             fromRaw: function(rawValue, model) {
                                 that.detailBtnDisable = false;
                                 if (Globals.auditAction[rawValue]) {
-                                    return Globals.auditAction[rawValue]
+                                    return Globals.auditAction[rawValue];
                                 } else {
-                                    return rawValue
+                                    return rawValue;
                                 }
                             }
                         })
@@ -135,7 +135,7 @@ define(['require',
                         sortable: false,
                         formatter: _.extend({}, Backgrid.CellFormatter.prototype, {
                             fromRaw: function(rawValue, model) {
-                                return '<div class="label label-success aditCreateBtn" data-id="auditCreate" data-action="' + Globals.auditAction[model.attributes.action] + '" disabled="' + that.detailBtnDisable + '" data-modalId="' + model.get('eventKey') + '">Detail</div>';
+                                return '<div class="label label-success auditDetailBtn" data-id="auditCreate" data-action="' + Globals.auditAction[model.attributes.action] + '" disabled="' + that.detailBtnDisable + '" data-modalId="' + model.get('eventKey') + '">Detail</div>';
                             }
                         })
                     },

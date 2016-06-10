@@ -22,8 +22,9 @@ define(['require',
     'utils/Utils',
     'views/tag/AddTagAttributeView',
     'collection/VCommonList',
-    'models/VTag'
-], function(require, Backbone, TagAttributeDetailLayoutViewTmpl, Utils, AddTagAttributeView, VCommonList, VTag) {
+    'models/VTag',
+    'utils/Messages'
+], function(require, Backbone, TagAttributeDetailLayoutViewTmpl, Utils, AddTagAttributeView, VCommonList, VTag, Messages) {
     'use strict';
 
     var TagAttributeDetailLayoutView = Backbone.Marionette.LayoutView.extend(
@@ -45,12 +46,16 @@ define(['require',
                 addTagtext: '[data-id="addTagtext"]',
                 addTagPlus: '[data-id="addTagPlus"]',
                 description: '[data-id="description"]',
+                descriptionTextArea: '[data-id="descriptionTextArea"]',
+                publishButton: '[data-id="publishButton"]',
             },
             /** ui events hash */
             events: function() {
                 var events = {};
+                events["click " + this.ui.cancelButton] = 'onCancelButtonClick';
                 events["click " + this.ui.addAttrBtn] = 'onClickAddAttribute';
                 events["click " + this.ui.addTagListBtn] = 'onClickAddTagBtn';
+                events["click " + this.ui.editButton] = 'onEditButton';
                 return events;
             },
             /**
@@ -97,26 +102,17 @@ define(['require',
             onRender: function() {
                 this.ui.title.html('<span>' + this.tag + '</span>');
                 this.ui.saveButton.attr("disabled", "true");
+                this.ui.publishButton.prop('disabled', true);
             },
-            onSaveButton: function(ref) {
+            onSaveButton: function(saveObject, message) {
                 var that = this,
-                    tagModel = new VTag(),
-                    attributeName = $(ref.el).find("input").val();
-                this.tagCollection.first().get('traitTypes')[0].attributeDefinitions.push({
-                    "name": attributeName,
-                    "dataTypeName": "string",
-                    "multiplicity": "optional",
-                    "isComposite": false,
-                    "isUnique": false,
-                    "isIndexable": true,
-                    "reverseAttributeName": null
-                });
-                tagModel.set(this.tagCollection.first().toJSON()).save(null, {
+                    tagModel = new VTag();
+                tagModel.set(saveObject).save(null, {
                     type: "PUT",
                     success: function(model, response) {
                         that.tagCollection.fetch({ reset: true });
                         Utils.notifySuccess({
-                            content: " Attribute has been Updated"
+                            content: message
                         });
                     },
                     error: function(model, response) {
@@ -144,12 +140,66 @@ define(['require',
                                 allowCancel: true,
                             }).open();
                         modal.on('ok', function() {
-                            that.onSaveButton(view);
+                            var attributeName = $(view.el).find("input").val();
+                            that.tagCollection.first().get('traitTypes')[0].attributeDefinitions.push({
+                                "name": attributeName,
+                                "dataTypeName": "string",
+                                "multiplicity": "optional",
+                                "isComposite": false,
+                                "isUniquvar e": false,
+                                "isIndexable": true,
+                                "reverseAttributeName": null
+                            });
+                            that.onSaveButton(that.tagCollection.first().toJSON(), Messages.addAttributeSuccessMessage);
                         });
                         modal.on('closeModal', function() {
                             modal.trigger('cancel');
                         });
                     });
+            },
+            onCancelButtonClick: function() {
+                this.ui.description.show();
+                this.ui.editButton.show();
+                this.ui.editBox.hide();
+            },
+            textAreaChangeEvent: function(view, modal) {
+                if (view.tagCollection.first().get('traitTypes')[0].typeDescription == view.ui.description.val()) {
+                    modal.$el.find('button.ok').prop('disabled', true);
+                } else {
+                    modal.$el.find('button.ok').prop('disabled', false);
+                }
+            },
+            onPublishClick: function(view) {
+                view.tagCollection.first().get('traitTypes')[0].typeDescription = view.ui.description.val();
+                this.onSaveButton(this.tagCollection.first().toJSON(), Messages.updateTagDescriptionMessage);
+                this.ui.description.show();
+            },
+            onEditButton: function(e) {
+                var that = this;
+                $(e.currentTarget).blur();
+                require([
+                    'views/tag/CreateTagLayoutView',
+                    'modules/Modal'
+                ], function(CreateTagLayoutView, Modal) {
+                    var view = new CreateTagLayoutView({ 'tagCollection': that.tagCollection, 'tag': that.tag });
+                    var modal = new Modal({
+                        title: 'Edit Tag',
+                        content: view,
+                        cancelText: "Cancel",
+                        okText: 'Save',
+                        allowCancel: true,
+                    }).open();
+                    view.ui.description.on('keyup', function(e) {
+                        that.textAreaChangeEvent(view, modal);
+                    });
+                    modal.$el.find('button.ok').prop('disabled', true);
+                    modal.on('ok', function() {
+                        that.onPublishClick(view);
+                    });
+                    modal.on('closeModal', function() {
+                        modal.trigger('cancel');
+                    });
+                });
             }
         });
     return TagAttributeDetailLayoutView;

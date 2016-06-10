@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-define(['require', 'utils/Utils', 'modules/Modal'], function(require, Utils, Modal) {
+define(['require', 'utils/Utils', 'modules/Modal', 'utils/Messages'], function(require, Utils, Modal, Messages) {
     'use strict';
 
     var CommonViewFunction = {};
@@ -31,7 +31,7 @@ define(['require', 'utils/Utils', 'modules/Modal'], function(require, Utils, Mod
             }
         }
         var modal = new Modal({
-            title: 'Are you sure you want to delete ?',
+            title: Messages.deleteTitle,
             okText: 'Delete',
             htmlContent: msg,
             cancelText: "Cancel",
@@ -49,20 +49,20 @@ define(['require', 'utils/Utils', 'modules/Modal'], function(require, Utils, Mod
                 tagModel.deleteTag(options.guid, options.tagName, {
                     beforeSend: function() {},
                     success: function(data) {
-                        var msg = "Tag " + name.name + " has been deleted successfully";
+                        var msg = "Tag " + name.name + Messages.deleteSuccessMessage;
                         if (data.traitName) {
                             var tagOrTerm = Utils.checkTagOrTerm(data.traitName);
                             if (tagOrTerm.term) {
-                                msg = "Term " + data.traitName + " has been deleted successfully";
+                                msg = "Term " + data.traitName + Messages.deleteSuccessMessage;
                             } else {
-                                msg = "Tag " + data.traitName + " has been deleted successfully";
+                                msg = "Tag " + data.traitName + Messages.deleteSuccessMessage;
                             }
                         } else {
                             var tagOrTerm = Utils.checkTagOrTerm(options.tagName);
                             if (tagOrTerm.term) {
-                                msg = "Term " + data.traitName + " has been deleted successfully";
+                                msg = "Term " + data.traitName + Messages.deleteSuccessMessage;
                             } else {
-                                msg = "Tag " + data.traitName + " has been deleted successfully";
+                                msg = "Tag " + data.traitName + Messages.deleteSuccessMessage;
                             }
                         }
                         Utils.notifySuccess({
@@ -77,7 +77,7 @@ define(['require', 'utils/Utils', 'modules/Modal'], function(require, Utils, Mod
 
                     },
                     error: function(error, data, status) {
-                        var message = options.tagName + " could not be deleted";
+                        var message = options.tagName + Messages.deleteErrorMessage;
                         if (data.error) {
                             message = data.error;
                         }
@@ -100,11 +100,21 @@ define(['require', 'utils/Utils', 'modules/Modal'], function(require, Utils, Mod
                         var value = "";
                         if (data.definition.values.name) {
                             value = data.definition.values.name;
+                        }
+                        var id = "";
+                        if (data.definition.id) {
+                            if (_.isObject(data.definition.id) && data.definition.id.id) {
+                                id = data.definition.id.id;
+                            } else {
+                                id = data.definition.id;
+                            }
+                        }
+                        if (value.length > 1) {
+                            scope.$('td div[data-id="' + id + '"]').html('<a href="#!/detailPage/' + id + '">' + value + '</a>');
                         } else {
-                            value = data.GUID;
+                            scope.$('td div[data-id="' + id + '"]').html('<a href="#!/detailPage/' + id + '">' + id + '</a>');
                         }
 
-                        scope.$('td div[data-id="' + data.GUID + '"]').html('<a href="#!/detailPage/' + data.GUID + '">' + value + '</a>');
                     },
                     error: function(error, data, status) {},
                     complete: function() {}
@@ -123,8 +133,17 @@ define(['require', 'utils/Utils', 'modules/Modal'], function(require, Utils, Mod
                         id = inputOutputField.id;
                     }
                     if (id) {
-                        fetchInputOutputValue(id);
-                        subLink += '<div data-id="' + id + '"></div>';
+                        if (inputOutputField.values) {
+                            if (inputOutputField.values.name) {
+                                subLink += '<div><a href="#!/detailPage/' + id + '">' + inputOutputField.values.name + '</a><div>'
+                            } else {
+                                subLink += '<a href="#!/detailPage/' + id + '">' + id + '</a>'
+                            }
+                        } else {
+                            fetchInputOutputValue(id);
+                            subLink += '<div data-id="' + id + '"></div>';
+                        }
+
                     } else {
                         subLink += '<div></div>';
                     }
@@ -138,8 +157,16 @@ define(['require', 'utils/Utils', 'modules/Modal'], function(require, Utils, Mod
                     id = keyValue.id;
                 }
                 if (id) {
-                    fetchInputOutputValue(id);
-                    table += '<tr><td>' + key + '</td><td><div data-id="' + id + '"></div></td></tr>';
+                    if (keyValue.values) {
+                        if (keyValue.values.name) {
+                            table += '<tr><td>' + key + '</td><td><div><a href="#!/detailPage/' + id + '">' + keyValue.values.name + '</a><div></td></tr>';
+                        } else {
+                            table += '<tr><td>' + key + '</td><td><div><a href="#!/detailPage/' + id + '">' + id + '</a><div></td></tr>';
+                        }
+                    } else {
+                        fetchInputOutputValue(id);
+                        table += '<tr><td>' + key + '</td><td><div data-id="' + id + '"></div></td></tr>';
+                    }
                 } else {
                     var stringArr = [];
                     _.each(keyValue, function(val, key) {
@@ -169,6 +196,18 @@ define(['require', 'utils/Utils', 'modules/Modal'], function(require, Utils, Mod
             }
         });
         return table;
+    }
+    CommonViewFunction.userDataFetch = function(options) {
+        if (options.url) {
+            $.ajax({
+                url: options.url,
+                success: function(response) {
+                    if (options.callback) {
+                        options.callback(response);
+                    }
+                }
+            });
+        }
     }
     return CommonViewFunction;
 });

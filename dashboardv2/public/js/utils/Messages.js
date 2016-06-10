@@ -19,32 +19,15 @@
 define(['require'], function(require) {
     'use strict';
 
-    var Globals = {};
-
-    Globals.baseURL = '';
-    Globals.settings = {};
-    Globals.settings.PAGE_SIZE = 25;
-    Globals.saveApplicationState = {
-        mainPageState: {},
-        tabState: {
-            stateChanged: false,
-            tagUrl: "#!/tag",
-            taxonomyUrl: "#!/taxonomy",
-            searchUrl: "#!/search"
-        },
-        detailPageState: {}
+    var Messages = {
+        addSuccessMessage: " has been created successfully",
+        addErrorMessage: " could not be Created",
+        addTermToEntitySuccessMessage: " has been added to entity",
+        deleteTitle: "Are you sure you want to delete ?",
+        deleteSuccessMessage: " has been deleted successfully",
+        deleteErrorMessage: " could not be deleted",
+        addAttributeSuccessMessage: "Tag attribute is added successfully",
+        updateTagDescriptionMessage: "Tag description is updated successfully"
     };
-    Globals.auditAction = {
-        ENTITY_CREATE: "Entity Created",
-        ENTITY_UPDATE: "Entity Updated",
-        ENTITY_DELETE: "Entity Deleted",
-        TAG_ADD: "Tag Added",
-        TAG_DELETE: "Tag Deleted"
-    }
-    Globals.userLogedIn = {
-        status: false,
-        response: {}
-    }
-
-    return Globals;
+    return Messages;
 });

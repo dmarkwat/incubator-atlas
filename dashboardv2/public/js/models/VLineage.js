@@ -23,7 +23,7 @@ define(['require',
     'use strict';
     var VLineage = VBaseModel.extend({
 
-        urlRoot: Globals.baseURL + 'api/atlas/lineage/assetName/outputs/graph',
+        urlRoot: Globals.baseURL,
 
         defaults: {},
 
