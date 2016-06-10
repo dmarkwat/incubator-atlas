@@ -58,6 +58,18 @@
 
         <dependency>
             <groupId>com.thinkaurelius.titan</groupId>
+            <artifactId>titan-solr</artifactId>
+            <version>${titan.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.thinkaurelius.titan</groupId>
             <artifactId>titan-es</artifactId>
         </dependency>
 

@@ -368,9 +368,9 @@
         <jackson.version>1.8.3</jackson.version>
         <tinkerpop.version>2.6.0</tinkerpop.version>
         <titan.version>0.5.4</titan.version>
-        <hadoop.version>2.7.0</hadoop.version>
+        <hadoop.version>2.7.1</hadoop.version>
         <hbase.version>1.1.2</hbase.version>
-        <solr.version>5.1.0</solr.version>
+        <solr.version>4.10.4</solr.version>
         <kafka.version>0.9.0.0</kafka.version>
         <!-- scala versions -->
         <scala.version>2.10.4</scala.version>
@@ -1791,6 +1791,48 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>2.2.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+
+                <configuration>
+                    <prefix>git</prefix>
+                    <verbose>false</verbose>
+                    <skipPoms>true</skipPoms>
+                    <injectAllReactorProjects>true</injectAllReactorProjects>
+                    <failOnNoGitDirectory>true</failOnNoGitDirectory>
+                    <failOnUnableToExtractRepoInfo>true</failOnUnableToExtractRepoInfo>
+                    <skip>false</skip>
+                    <runOnlyOnce>true</runOnlyOnce>
+                    <excludeProperties>
+                        <!-- <excludeProperty>git.user.*</excludeProperty> -->
+                    </excludeProperties>
+                    <includeOnlyProperties>
+                        <!-- <includeOnlyProperty>^git.commit.id.full$</includeOnlyProperty> -->
+                    </includeOnlyProperties>
+                    <useNativeGit>false</useNativeGit>
+                    <abbrevLength>7</abbrevLength>
+
+                    <commitIdGenerationMode>flat</commitIdGenerationMode>
+                    <gitDescribe>
+                        <skip>true</skip>
+                        <always>false</always>
+                        <abbrev>7</abbrev>
+                        <dirty>-dirty</dirty>
+                        <match>*</match>
+                        <forceLongFormat>false</forceLongFormat>
+                    </gitDescribe>
+                </configuration>
             </plugin>
         </plugins>
     </build>
