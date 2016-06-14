@@ -65,6 +65,9 @@ SOLR_INDEX_CONF_ENTRY="atlas.graph.index.search.backend\s*=\s*solr5"
 SOLR_INDEX_LOCAL_CONF_ENTRY="atlas.graph.index.search.solr.zookeeper-url\s*=\s*localhost"
 SOLR_INDEX_ZK_URL="atlas.graph.index.search.solr.zookeeper-url"
 
+HADOOP_CONF_DIR="HADOOP_CONF_DIR"
+HADOOP_LIB_DIR="HADOOP_LIB_DIR"
+
 DEBUG = False
 
 def scriptDir():
@@ -89,6 +92,12 @@ def hbaseBinDir(dir):
 
 def hbaseConfDir(dir):
     return os.environ.get(HBASE_CONF_DIR, os.path.join(dir, "hbase", CONF))
+
+def hadoopConfDir(dir):
+    return os.environ.get(HADOOP_CONF_DIR, os.path.join(dir, "hadoop", CONF))
+
+def hadoopClientDir():
+    return os.environ.get(HADOOP_LIB_DIR)
 
 def solrBinDir(dir):
     return os.environ.get(SOLR_BIN, os.path.join(dir, "solr", BIN))

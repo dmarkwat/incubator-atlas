@@ -85,12 +85,26 @@ def main():
         #add hbase-site.xml to classpath
         hbase_conf_dir = mc.hbaseConfDir(atlas_home)
 
+        #add core-site.xml to classpath
+        hadoop_conf_dir = mc.hadoopConfDir(atlas_home)
+        hadoop_lib_dir = mc.hadoopClientDir()
+
         if os.path.exists(hbase_conf_dir):
             atlas_classpath = atlas_classpath + p \
                             + hbase_conf_dir
         else:
-            if mc.is_hbase(confdir):
-                raise Exception("Could not find hbase-site.xml in %s. Please set env var HBASE_CONF_DIR to the hbase client conf dir", hbase_conf_dir)
+            raise Exception("Could not find hbase-site.xml in %s. Please set env var HBASE_CONF_DIR to the hbase client conf dir", hbase_conf_dir)
+
+        if os.path.exists(hadoop_conf_dir):
+            atlas_classpath = hadoop_conf_dir + p + atlas_classpath
+        else:
+            raise Exception("Could not find core-site.xml in %s. Please set env var HADOOP_CONF_DIR to the hadoop client conf dir", hadoop_conf_dir)
+
+        if os.path.exists(hadoop_lib_dir):
+            #atlas_classpath = os.path.join(hadoop_lib_dir, "*") + p + atlas_classpath
+            atlas_classpath = atlas_classpath + p + os.path.join(hadoop_lib_dir, "*")
+        else:
+            raise Exception("Could not find HADOOP_LIB_DIR env var. Please set env var HADOOP_LIB_DIR")
 
     if mc.isCygwin():
         atlas_classpath = mc.convertCygwinPath(atlas_classpath, True)
