@@ -67,9 +67,12 @@ SOLR_INDEX_ZK_URL="atlas.graph.index.search.solr.zookeeper-url"
 TOPICS_TO_CREATE="atlas.notification.topics"
 
 HADOOP_CONF_DIR="HADOOP_CONF_DIR"
-HADOOP_LIB_DIR="HADOOP_LIB_DIR"
+HADOOP_HOME="HADOOP_HOME"
 
 DEBUG = False
+
+def hadoopHome(dir):
+    return os.environ.get(HADOOP_HOME, os.path.join(dir, "hadoop"))
 
 def scriptDir():
     """
@@ -95,10 +98,7 @@ def hbaseConfDir(dir):
     return os.environ.get(HBASE_CONF_DIR, os.path.join(dir, "hbase", CONF))
 
 def hadoopConfDir(dir):
-    return os.environ.get(HADOOP_CONF_DIR, os.path.join(dir, "hadoop", CONF))
-
-def hadoopClientDir():
-    return os.environ.get(HADOOP_LIB_DIR)
+    return os.environ.get(HADOOP_CONF_DIR, os.path.join(dir, CONF, "hadoop"))
 
 def solrBinDir(dir):
     return os.environ.get(SOLR_BIN, os.path.join(dir, "solr", BIN))
