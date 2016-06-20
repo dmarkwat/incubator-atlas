@@ -130,7 +130,8 @@ public class HiveMetaStoreBridge {
 
     private void importDatabases() throws Exception {
         List<String> databases = hiveClient.getAllDatabases();
-        for (String databaseName : databases) {
+        List<String> filtered = options.getFilter().filterDatabases(databases);
+        for (String databaseName : filtered) {
             Referenceable dbReference = registerDatabase(databaseName);
 
             importTables(dbReference, databaseName);
@@ -266,8 +267,9 @@ public class HiveMetaStoreBridge {
      */
     private void importTables(Referenceable databaseReferenceable, String databaseName) throws Exception {
         List<String> hiveTables = hiveClient.getAllTables(databaseName);
+        List<String> filtered = options.getFilter().filterTables(databaseName, hiveTables);
 
-        for (String tableName : hiveTables) {
+        for (String tableName : filtered) {
             Table table = hiveClient.getTable(databaseName, tableName);
             Referenceable tableReferenceable = registerTable(databaseReferenceable, table);
         }

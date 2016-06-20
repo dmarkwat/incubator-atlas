@@ -1,13 +1,13 @@
 package org.apache.atlas.hive.bridge;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.commons.collections.set.UnmodifiableSet;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.map.DefaultedMap;
+import org.apache.commons.collections4.map.UnmodifiableMap;
+import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
+import org.apache.commons.collections4.set.UnmodifiableSet;
 
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by A744013 on 6/16/16.
@@ -15,23 +15,26 @@ import java.util.Set;
 public class HiveMetaFilter {
 
     private final Set<Filter> databaseFilters;
-    private final Set<Filter> tableFilters;
+    private final Map<String, Collection<Filter>> tableFilters;
 
     public HiveMetaFilter() {
-        this(Sets.<Filter>newHashSet(Filters.MATCH_ALL), Sets.<Filter>newHashSet(Filters.MATCH_ALL));
+        this(Sets.<Filter>newHashSet(Filters.MATCH_ALL),
+                DefaultedMap.defaultedMap(
+                        new HashMap<String, Collection<Filter>>(),
+                        Sets.<Filter>newHashSet(Filters.MATCH_ALL)));
     }
 
-    public HiveMetaFilter(Set<Filter> databaseFilters, Set<Filter> tableFilters) {
+    public HiveMetaFilter(Set<Filter> databaseFilters, Map<String, Collection<Filter>> tableFilters) {
         this.databaseFilters = databaseFilters;
         this.tableFilters = tableFilters;
     }
 
     public Set<Filter> getDatabaseFilters() {
-        return UnmodifiableSet.decorate(databaseFilters);
+        return UnmodifiableSet.unmodifiableSet(databaseFilters);
     }
 
-    public Set<Filter> getTableFilters() {
-        return UnmodifiableSet.decorate(tableFilters);
+    public Map<String, Collection<Filter>> getTableFilters() {
+        return UnmodifiableMap.unmodifiableMap(tableFilters);
     }
 
     public List<String> filterDatabases(List<String> databases) {
@@ -43,20 +46,42 @@ public class HiveMetaFilter {
     }
 
     public List<String> filterTables(String db, List<String> tables) {
-        final String dbRef = db;
-        List<String> filtered = Lists.transform(
-                tables,
-                new Function<String, String>() {
-                    @Nullable
-                    @Override
-                    public String apply(@Nullable String s) {
-                        return s == null ? s : String.format("%s.%s", dbRef, s);
-                    }
-                });
-
-        for (Filter filter : tableFilters) {
+        List<String> filtered = tables;
+        for (Filter filter : tableFilters.get(db)) {
             filtered = filter.filter(filtered);
         }
         return filtered;
+    }
+
+    public static class Builder {
+
+        private final Set<Filter> databaseFilters;
+        private final MultiValuedMap<String, Filter> tableFilters;
+
+        public Builder() {
+            databaseFilters = new HashSet<>();
+            tableFilters = new HashSetValuedHashMap<>();
+        }
+
+        public Builder addDatabaseFilter(Filter filter) {
+            databaseFilters.add(filter);
+            return this;
+        }
+
+        public Builder addTableFilter(String db, Filter filter) {
+            tableFilters.put(db, filter);
+            return this;
+        }
+
+        public HiveMetaFilter build() {
+            Set<Filter> set = Sets.newHashSet(databaseFilters);
+            if (set.isEmpty())
+                set.add(Filters.MATCH_ALL);
+
+            Map<String, Collection<Filter>> map = DefaultedMap.defaultedMap(tableFilters.asMap(),
+                    Sets.<Filter>newHashSet(Filters.MATCH_ALL));
+
+            return new HiveMetaFilter(set, map);
+        }
     }
 }

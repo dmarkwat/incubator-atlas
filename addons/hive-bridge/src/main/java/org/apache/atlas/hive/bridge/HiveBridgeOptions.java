@@ -42,53 +42,42 @@ public class HiveBridgeOptions {
     }
 
     public HiveBridgeOptions(String[] argv) {
-        Set<Filter> tableFilters = new HashSet<>();
+        HiveMetaFilter.Builder builder = new HiveMetaFilter.Builder();
+
         Set<Filter> dbFilters = new HashSet<>();
 
         OptionSet options = parser.parse(argv);
         if (options.has(TABLE_OPT)) {
-            Set<String> tables = new HashSet<>();
             for (String table : options.valuesOf(TABLE_OPT)) {
-                Validate.isTrue(StringUtils.countMatches(table, ".") > 0);
-                tables.add(table);
+                String[] parts = StringUtils.split(table, ".", 2);
+                Validate.isTrue(parts.length > 1, String.format("Table, '%s', does not have a '.' separator", table));
+                builder.addTableFilter(parts[0], new MatchFilter(parts[1]));
             }
-            tableFilters.add(new MatchFilter(tables));
         }
 
         if (options.has(DB_OPT)) {
-            Set<String> dbs = new HashSet<>();
             for (String db : options.valuesOf(DB_OPT)) {
                 Validate.isTrue(StringUtils.countMatches(db, ".") == 0);
-                dbs.add(db);
+                builder.addDatabaseFilter(new MatchFilter(db));
             }
-            dbFilters.add(new MatchFilter(dbs));
         }
 
         if (options.has(NOT_TABLE_OPT)) {
-            Set<String> tables = new HashSet<>();
             for (String table : options.valuesOf(TABLE_OPT)) {
-                Validate.isTrue(StringUtils.countMatches(table, ".") > 0);
-                tables.add(table);
+                String[] parts = StringUtils.split(table, ".", 2);
+                Validate.isTrue(parts.length > 1, String.format("Table, '%s', does not have a '.' separator", table));
+                builder.addTableFilter(parts[0], new MatchNotFilter(parts[1]));
             }
-            tableFilters.add(new MatchNotFilter(tables));
         }
 
         if (options.has(NOT_DB_OPT)) {
-            Set<String> dbs = new HashSet<>();
             for (String db : options.valuesOf(DB_OPT)) {
                 Validate.isTrue(StringUtils.countMatches(db, ".") == 0);
-                dbs.add(db);
+                builder.addDatabaseFilter(new MatchNotFilter(db));
             }
-            dbFilters.add(new MatchNotFilter(dbs));
         }
 
-        if (!options.has(TABLE_OPT) && !options.has(NOT_TABLE_OPT))
-            tableFilters.add(Filters.MATCH_ALL);
-
-        if (!options.has(DB_OPT) && !options.has(NOT_DB_OPT))
-            dbFilters.add(Filters.MATCH_ALL);
-
-        this.filter = new HiveMetaFilter(dbFilters, tableFilters);
+        this.filter = builder.build();
     }
 
     public HiveMetaFilter getFilter() {

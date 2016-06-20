@@ -1,5 +1,8 @@
 package org.apache.atlas.hive.bridge;
 
+import com.google.common.collect.Sets;
+import org.apache.commons.collections4.CollectionUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -10,6 +13,10 @@ import java.util.Set;
 public class MatchFilter implements Filter {
 
     private final Set<String> accepted;
+
+    public MatchFilter(String accepted) {
+        this.accepted = Sets.newHashSet(accepted);
+    }
 
     public MatchFilter(Set<String> accepted) {
         this.accepted = accepted;
@@ -22,10 +29,26 @@ public class MatchFilter implements Filter {
     @Override
     public List<String> filter(List<String> toFilter) {
         List<String> filtered = new ArrayList<>();
-        for (String db : accepted) {
+        for (String db : toFilter) {
             if (accepted.contains(db))
                 filtered.add(db);
         }
         return filtered;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        MatchFilter that = (MatchFilter) o;
+
+        return CollectionUtils.isEqualCollection(accepted, that.accepted);
+
+    }
+
+    @Override
+    public int hashCode() {
+        return accepted.hashCode();
     }
 }

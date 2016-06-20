@@ -11,6 +11,10 @@ import java.util.Set;
  */
 public class MatchNotFilter extends MatchFilter implements Filter {
 
+    public MatchNotFilter(String accepted) {
+        super(accepted);
+    }
+
     public MatchNotFilter(Set<String> accepted) {
         super(accepted);
     }
@@ -19,6 +23,6 @@ public class MatchNotFilter extends MatchFilter implements Filter {
     public List<String> filter(List<String> toFilter) {
         List<String> filtered = super.filter(toFilter);
         return Lists.newArrayList(
-                Sets.difference(Sets.newHashSet(filtered), this.getAccepted()));
+                Sets.difference(Sets.newHashSet(toFilter), Sets.newHashSet(filtered)));
     }
 }
