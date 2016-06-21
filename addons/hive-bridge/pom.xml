@@ -199,6 +199,18 @@
                             <overWriteIfNewer>true</overWriteIfNewer>
                             <artifactItems>
                                 <artifactItem>
+                                    <groupId>org.apache.commons</groupId>
+                                    <artifactId>commons-collections4</artifactId>
+                                    <version>4.1</version>
+                                </artifactItem>
+
+                                <artifactItem>
+                                    <groupId>net.sf.jopt-simple</groupId>
+                                    <artifactId>jopt-simple</artifactId>
+                                    <version>4.9</version>
+                                </artifactItem>
+
+                                <artifactItem>
                                     <groupId>${project.groupId}</groupId>
                                     <artifactId>${project.artifactId}</artifactId>
                                     <version>${project.version}</version>
