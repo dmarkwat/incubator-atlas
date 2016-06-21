@@ -333,9 +333,12 @@ public class HiveHook extends AtlasHook implements ExecuteWithHookContext {
     private void renameColumn(HiveMetaStoreBridge dgiBridge, HiveEventContext event) throws  Exception{
         assert event.getInputs() != null && event.getInputs().size() == 1;
         assert event.getOutputs() != null && event.getOutputs().size() > 0;
+
         Table oldTable = event.getInputs().iterator().next().getTable();
         List<FieldSchema> oldColList = oldTable.getAllCols();
-        List<FieldSchema> newColList = dgiBridge.hiveClient.getTable(event.getOutputs().iterator().next().getTable().getTableName()).getAllCols();
+        Table outputTbl = event.getOutputs().iterator().next().getTable();
+        outputTbl = dgiBridge.hiveClient.getTable(outputTbl.getDbName(), outputTbl.getTableName());
+        List<FieldSchema> newColList = outputTbl.getAllCols();
         assert oldColList.size() == newColList.size();
 
         Pair<String, String> changedColNamePair = findChangedColNames(oldColList, newColList);
@@ -401,12 +404,12 @@ public class HiveHook extends AtlasHook implements ExecuteWithHookContext {
     }
 
     private Referenceable replaceTableQFName(HiveEventContext event, Table oldTable, Table newTable, final Referenceable tableEntity, final String oldTableQFName, final String newTableQFName) throws HiveException {
-        tableEntity.set(HiveDataModelGenerator.NAME,  oldTable.getTableName().toLowerCase());
+        tableEntity.set(AtlasClient.NAME,  oldTable.getTableName().toLowerCase());
         tableEntity.set(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, oldTableQFName);
 
         //Replace table entity with new name
         final Referenceable newEntity = new Referenceable(HiveDataTypes.HIVE_TABLE.getName());
-        newEntity.set(HiveDataModelGenerator.NAME, newTable.getTableName().toLowerCase());
+        newEntity.set(AtlasClient.NAME, newTable.getTableName().toLowerCase());
         newEntity.set(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, newTableQFName);
 
         ArrayList<String> alias_list = new ArrayList<>();
@@ -422,7 +425,7 @@ public class HiveHook extends AtlasHook implements ExecuteWithHookContext {
     private List<Referenceable> replaceColumnQFName(final HiveEventContext event, final List<Referenceable> cols, final String oldTableQFName, final String newTableQFName) {
         List<Referenceable> newColEntities = new ArrayList<>();
         for (Referenceable col : cols) {
-            final String colName = (String) col.get(HiveDataModelGenerator.NAME);
+            final String colName = (String) col.get(AtlasClient.NAME);
             String oldColumnQFName = HiveMetaStoreBridge.getColumnQualifiedName(oldTableQFName, colName);
             String newColumnQFName = HiveMetaStoreBridge.getColumnQualifiedName(newTableQFName, colName);
             col.set(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, oldColumnQFName);

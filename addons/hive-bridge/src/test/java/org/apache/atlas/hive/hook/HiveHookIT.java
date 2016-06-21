@@ -63,9 +63,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.atlas.AtlasClient.NAME;
 import static org.apache.atlas.hive.hook.HiveHook.lower;
 import static org.apache.atlas.hive.hook.HiveHook.normalize;
-import static org.apache.atlas.hive.model.HiveDataModelGenerator.NAME;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
@@ -192,13 +192,18 @@ public class HiveHookIT {
         Assert.assertNotNull(colEntity.get(HiveDataModelGenerator.TABLE));
         Assert.assertEquals(((Id) colEntity.get(HiveDataModelGenerator.TABLE))._getId(), tableId);
 
+        //assert that column.owner = table.owner
+        Referenceable tableRef = atlasClient.getEntity(tableId);
+        assertEquals(tableRef.get(AtlasClient.OWNER), colEntity.get(AtlasClient.OWNER));
+
+        //create table where db is not registered
         tableName = createTable();
         tableId = assertTableIsRegistered(DEFAULT_DB, tableName);
-        Referenceable tableRef = atlasClient.getEntity(tableId);
+        tableRef = atlasClient.getEntity(tableId);
         Assert.assertEquals(tableRef.get(HiveDataModelGenerator.TABLE_TYPE_ATTR), TableType.MANAGED_TABLE.name());
         Assert.assertEquals(tableRef.get(HiveDataModelGenerator.COMMENT), "table comment");
         String entityName = HiveMetaStoreBridge.getTableQualifiedName(CLUSTER_NAME, DEFAULT_DB, tableName);
-        Assert.assertEquals(tableRef.get(HiveDataModelGenerator.NAME), tableName.toLowerCase());
+        Assert.assertEquals(tableRef.get(AtlasClient.NAME), tableName.toLowerCase());
         Assert.assertEquals(tableRef.get(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME), entityName);
 
         Table t = hiveMetaStoreBridge.hiveClient.getTable(DEFAULT_DB, tableName);
@@ -1018,13 +1023,16 @@ public class HiveHookIT {
 
     @Test
     public void testTraitsPreservedOnColumnRename() throws Exception {
-        String tableName = createTable();
-        String tbqn = HiveMetaStoreBridge.getTableQualifiedName(CLUSTER_NAME, DEFAULT_DB, tableName);
+        String dbName = createDatabase();
+        String tableName = tableName();
+        String createQuery = String.format("create table %s.%s (id int, name string)", dbName, tableName);
+        runCommand(createQuery);
+        String tbqn = HiveMetaStoreBridge.getTableQualifiedName(CLUSTER_NAME, dbName, tableName);
         String guid = assertColumnIsRegistered(HiveMetaStoreBridge.getColumnQualifiedName(tbqn, "id"));
         String trait = createTrait(guid);
         String oldColName = "id";
         String newColName = "id_new";
-        String query = String.format("alter table %s change %s %s string", tableName, oldColName, newColName);
+        String query = String.format("alter table %s.%s change %s %s string", dbName, tableName, oldColName, newColName);
         runCommand(query);
 
         String guid2 = assertColumnIsRegistered(HiveMetaStoreBridge.getColumnQualifiedName(tbqn, "id_new"));
@@ -1351,7 +1359,7 @@ public class HiveHookIT {
         assertDatabaseIsRegistered(dbName, new AssertPredicate() {
             @Override
             public void assertOnEntity(Referenceable entity) {
-                assertEquals(entity.get(HiveDataModelGenerator.OWNER), owner);
+                assertEquals(entity.get(AtlasClient.OWNER), owner);
             }
         });
     }

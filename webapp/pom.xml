@@ -18,15 +18,13 @@
   ~ limitations under the License.
   -->
 
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.atlas</groupId>
         <artifactId>apache-atlas</artifactId>
-        <version>0.7-incubating-SNAPSHOT</version>
+        <version>0.8-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>atlas-webapp</artifactId>
     <description>Apache Atlas Web Application</description>
@@ -36,6 +34,7 @@
     <properties>
         <projectBaseDir>${project.basedir}/..</projectBaseDir>
         <debug.jetty.daemon>true</debug.jetty.daemon>
+        <packages.to.exclude />
     </properties>
 
     <profiles>
@@ -65,6 +64,26 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <!-- default profile is for external HBase and Solr - hence not packaging those jars -->
+            <id>dist</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <packages.to.exclude>WEB-INF/lib/titan-berkeleyje-${titan.version}.jar,WEB-INF/lib/je-*.jar,WEB-INF/lib/titan-es-${titan.version}.jar,WEB-INF/lib/elasticsearch-*.jar</packages.to.exclude>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>berkeley-elasticsearch</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <packages.to.exclude>WEB-INF/lib/je-*.jar</packages.to.exclude>
+            </properties>
         </profile>
     </profiles>
 
@@ -303,6 +322,14 @@
             <version>3.4</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.atlas</groupId>
+            <artifactId>atlas-typesystem</artifactId>
+            <version>${parent.version}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -318,15 +345,18 @@
                             <groupId>org.apache.atlas</groupId>
                             <artifactId>atlas-dashboardv2</artifactId>
                         </overlay>
-		        <overlay>
-		             <!-- empty groupId/artifactId represents the current build -->
-            		</overlay>
+                        <overlay>
+                             <!-- empty groupId/artifactId represents the current build -->
+                        </overlay>
                     </overlays>
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
                         </manifest>
                     </archive>
+                    <packagingExcludes>
+                        ${packages.to.exclude}
+                    </packagingExcludes>
                 </configuration>
             </plugin>
 
@@ -448,6 +478,10 @@
                         <systemProperty>
                             <name>atlas.data</name>
                             <value>${project.build.directory}/data</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <key>atlas.conf</key>
+                            <value>${project.build.directory}/../../typesystem/target/test-classes</value>
                         </systemProperty>
                     </systemProperties>
                     <stopKey>atlas-stop</stopKey>
