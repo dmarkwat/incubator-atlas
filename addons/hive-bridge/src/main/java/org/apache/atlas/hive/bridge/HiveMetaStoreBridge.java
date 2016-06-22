@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,11 +38,7 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.TableType;
-import org.apache.hadoop.hive.metastore.api.Database;
-import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.Order;
-import org.apache.hadoop.hive.metastore.api.SerDeInfo;
-import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
+import org.apache.hadoop.hive.metastore.api.*;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.Table;
@@ -80,11 +76,17 @@ public class HiveMetaStoreBridge {
 
     public final Hive hiveClient;
     private AtlasClient atlasClient = null;
+    private final HiveBridgeOptions options;
 
-    HiveMetaStoreBridge(String clusterName, Hive hiveClient, AtlasClient atlasClient) {
+    HiveMetaStoreBridge(String clusterName, Hive hiveClient, AtlasClient atlasClient, HiveBridgeOptions options) {
         this.clusterName = clusterName;
         this.hiveClient = hiveClient;
         this.atlasClient = atlasClient;
+        this.options = options;
+    }
+
+    HiveMetaStoreBridge(String clusterName, Hive hiveClient, AtlasClient atlasClient) {
+        this(clusterName, hiveClient, atlasClient, new HiveBridgeOptions());
     }
 
     public String getClusterName() {
@@ -93,6 +95,7 @@ public class HiveMetaStoreBridge {
 
     /**
      * Construct a HiveMetaStoreBridge.
+     *
      * @param hiveConf {@link HiveConf} for Hive component in the cluster
      */
     public HiveMetaStoreBridge(HiveConf hiveConf) throws Exception {
@@ -101,10 +104,20 @@ public class HiveMetaStoreBridge {
 
     /**
      * Construct a HiveMetaStoreBridge.
+     *
      * @param hiveConf {@link HiveConf} for Hive component in the cluster
      */
     public HiveMetaStoreBridge(HiveConf hiveConf, AtlasClient atlasClient) throws Exception {
         this(hiveConf.get(HIVE_CLUSTER_NAME, DEFAULT_CLUSTER_NAME), Hive.get(hiveConf), atlasClient);
+    }
+
+    /**
+     * Construct a HiveMetaStoreBridge.
+     *
+     * @param hiveConf {@link HiveConf} for Hive component in the cluster
+     */
+    public HiveMetaStoreBridge(HiveConf hiveConf, AtlasClient atlasClient, HiveBridgeOptions options) throws Exception {
+        this(hiveConf.get(HIVE_CLUSTER_NAME, DEFAULT_CLUSTER_NAME), Hive.get(hiveConf), atlasClient, options);
     }
 
     AtlasClient getAtlasClient() {
@@ -118,7 +131,8 @@ public class HiveMetaStoreBridge {
 
     private void importDatabases() throws Exception {
         List<String> databases = hiveClient.getAllDatabases();
-        for (String databaseName : databases) {
+        List<String> filtered = options.getFilter().filterDatabases(databases);
+        for (String databaseName : filtered) {
             Referenceable dbReference = registerDatabase(databaseName);
 
             importTables(dbReference, databaseName);
@@ -127,6 +141,7 @@ public class HiveMetaStoreBridge {
 
     /**
      * Create a Hive Database entity
+     *
      * @param hiveDB The Hive {@link Database} object from which to map properties
      * @return new Hive Database entity
      * @throws HiveException
@@ -137,6 +152,7 @@ public class HiveMetaStoreBridge {
 
     /**
      * Checks if db is already registered, else creates and registers db entity
+     *
      * @param databaseName
      * @return
      * @throws Exception
@@ -177,6 +193,7 @@ public class HiveMetaStoreBridge {
 
     /**
      * Registers an entity in atlas
+     *
      * @param referenceable
      * @return
      * @throws Exception
@@ -195,8 +212,9 @@ public class HiveMetaStoreBridge {
 
     /**
      * Gets reference to the atlas entity for the database
-     * @param databaseName  database Name
-     * @param clusterName    cluster name
+     *
+     * @param databaseName database Name
+     * @param clusterName  cluster name
      * @return Reference for database if exists, else null
      * @throws Exception
      */
@@ -232,19 +250,20 @@ public class HiveMetaStoreBridge {
 
     /**
      * Construct the qualified name used to uniquely identify a Database instance in Atlas.
+     *
      * @param clusterName Name of the cluster to which the Hive component belongs
-     * @param dbName Name of the Hive database
+     * @param dbName      Name of the Hive database
      * @return Unique qualified name to identify the Database instance in Atlas.
      */
     public static String getDBQualifiedName(String clusterName, String dbName) {
         return String.format("%s@%s", dbName.toLowerCase(), clusterName);
     }
 
-    private String getCreateTableString(Table table, String location){
+    private String getCreateTableString(Table table, String location) {
         String colString = "";
         List<FieldSchema> colList = table.getAllCols();
-        for(FieldSchema col:colList){
-            colString += col.getName()  + " " + col.getType() + ",";
+        for (FieldSchema col : colList) {
+            colString += col.getName() + " " + col.getType() + ",";
         }
         colString = colString.substring(0, colString.length() - 1);
         String query = "create external table " + table.getTableName() + "(" + colString + ")" +
@@ -254,20 +273,23 @@ public class HiveMetaStoreBridge {
 
     /**
      * Imports all tables for the given db
+     *
      * @param databaseName
      * @param databaseReferenceable
      * @throws Exception
      */
     private void importTables(Referenceable databaseReferenceable, String databaseName) throws Exception {
         List<String> hiveTables = hiveClient.getAllTables(databaseName);
-        LOG.info("Importing tables {} for db {}", hiveTables.toString(), databaseName);
-        for (String tableName : hiveTables) {
+        List<String> filtered = options.getFilter().filterTables(databaseName, hiveTables);
+
+        for (String tableName : filtered) {
+            LOG.info("Importing tables {} for db {}", hiveTables.toString(), databaseName);
             Table table = hiveClient.getTable(databaseName, tableName);
             Referenceable tableReferenceable = registerTable(databaseReferenceable, table);
-            if (table.getTableType() == TableType.EXTERNAL_TABLE){
+            if (table.getTableType() == TableType.EXTERNAL_TABLE) {
                 String tableQualifiedName = getTableQualifiedName(clusterName, table);
                 Referenceable process = getProcessReference(tableQualifiedName);
-                if (process == null){
+                if (process == null) {
                     LOG.info("Attempting to register create table process for {}", tableQualifiedName);
                     Referenceable lineageProcess = new Referenceable(HiveDataTypes.HIVE_PROCESS.getName());
                     ArrayList<Referenceable> sourceList = new ArrayList<>();
@@ -294,8 +316,7 @@ public class HiveMetaStoreBridge {
                     lineageProcess.set(AtlasClient.NAME, query);
                     registerInstance(lineageProcess);
 
-                }
-                else {
+                } else {
                     LOG.info("Process {} is already registered", process.toString());
                 }
             }
@@ -309,7 +330,7 @@ public class HiveMetaStoreBridge {
      * @return table reference if exists, else null
      * @throws Exception
      */
-    private Referenceable getTableReference(Table hiveTable)  throws Exception {
+    private Referenceable getTableReference(Table hiveTable) throws Exception {
         LOG.debug("Getting reference for table {}.{}", hiveTable.getDbName(), hiveTable.getTableName());
 
         String typeName = HiveDataTypes.HIVE_TABLE.getName();
@@ -317,14 +338,14 @@ public class HiveMetaStoreBridge {
         return getEntityReferenceFromDSL(typeName, dslQuery);
     }
 
-    private Referenceable getProcessReference(String qualifiedName) throws Exception{
+    private Referenceable getProcessReference(String qualifiedName) throws Exception {
         LOG.debug("Getting reference for process {}", qualifiedName);
         String typeName = HiveDataTypes.HIVE_PROCESS.getName();
         String dslQuery = getProcessDSLQuery(typeName, qualifiedName);
         return getEntityReferenceFromDSL(typeName, dslQuery);
     }
 
-    static String getProcessDSLQuery(String typeName, String qualifiedName) throws Exception{
+    static String getProcessDSLQuery(String typeName, String qualifiedName) throws Exception {
         String dslQuery = String.format("%s as t where qualifiedName = '%s'", typeName, qualifiedName);
         return dslQuery;
     }
@@ -336,9 +357,10 @@ public class HiveMetaStoreBridge {
 
     /**
      * Construct the qualified name used to uniquely identify a Table instance in Atlas.
+     *
      * @param clusterName Name of the cluster to which the Hive component belongs
-     * @param dbName Name of the Hive database to which the Table belongs
-     * @param tableName Name of the Hive table
+     * @param dbName      Name of the Hive database to which the Table belongs
+     * @param tableName   Name of the Hive table
      * @return Unique qualified name to identify the Table instance in Atlas.
      */
     public static String getTableQualifiedName(String clusterName, String dbName, String tableName, boolean isTemporaryTable) {
@@ -354,11 +376,11 @@ public class HiveMetaStoreBridge {
     }
 
 
-
     /**
      * Construct the qualified name used to uniquely identify a Table instance in Atlas.
+     *
      * @param clusterName Name of the cluster to which the Hive component belongs
-     * @param table hive table for which the qualified name is needed
+     * @param table       hive table for which the qualified name is needed
      * @return Unique qualified name to identify the Table instance in Atlas.
      */
     public static String getTableQualifiedName(String clusterName, Table table) {
@@ -367,19 +389,21 @@ public class HiveMetaStoreBridge {
 
     /**
      * Construct the qualified name used to uniquely identify a Table instance in Atlas.
+     *
      * @param clusterName Name of the cluster to which the Hive component belongs
-     * @param dbName Name of the Hive database to which the Table belongs
-     * @param tableName Name of the Hive table
+     * @param dbName      Name of the Hive database to which the Table belongs
+     * @param tableName   Name of the Hive table
      * @return Unique qualified name to identify the Table instance in Atlas.
      */
     public static String getTableQualifiedName(String clusterName, String dbName, String tableName) {
-         return getTableQualifiedName(clusterName, dbName, tableName, false);
+        return getTableQualifiedName(clusterName, dbName, tableName, false);
     }
 
     /**
      * Create a new table instance in Atlas
+     *
      * @param dbReference reference to a created Hive database {@link Referenceable} to which this table belongs
-     * @param hiveTable reference to the Hive {@link Table} from which to map properties
+     * @param hiveTable   reference to the Hive {@link Table} from which to map properties
      * @return Newly created Hive reference
      * @throws Exception
      */
@@ -402,18 +426,18 @@ public class HiveMetaStoreBridge {
         tableReference.set(AtlasClient.OWNER, hiveTable.getOwner());
 
         Date createDate = new Date();
-        if (hiveTable.getTTable() != null){
+        if (hiveTable.getTTable() != null) {
             try {
                 createDate = new Date(hiveTable.getTTable().getCreateTime() * MILLIS_CONVERT_FACTOR);
                 LOG.debug("Setting create time to {} ", createDate);
                 tableReference.set(HiveDataModelGenerator.CREATE_TIME, createDate);
-            } catch(NumberFormatException ne) {
+            } catch (NumberFormatException ne) {
                 LOG.error("Error while updating createTime for the table {} ", hiveTable.getCompleteName(), ne);
             }
         }
 
         Date lastAccessTime = createDate;
-        if ( hiveTable.getLastAccessTime() > 0) {
+        if (hiveTable.getLastAccessTime() > 0) {
             lastAccessTime = new Date(hiveTable.getLastAccessTime() * MILLIS_CONVERT_FACTOR);
         }
         tableReference.set(HiveDataModelGenerator.LAST_ACCESS_TIME, lastAccessTime);
@@ -483,7 +507,7 @@ public class HiveMetaStoreBridge {
     }
 
     private Referenceable getEntityReferenceFromGremlin(String typeName, String gremlinQuery)
-    throws AtlasServiceException, JSONException {
+            throws AtlasServiceException, JSONException {
         AtlasClient client = getAtlasClient();
         JSONArray results = client.searchByGremlin(gremlinQuery);
         if (results.length() == 0) {
@@ -494,7 +518,7 @@ public class HiveMetaStoreBridge {
     }
 
     public Referenceable fillStorageDesc(StorageDescriptor storageDesc, String tableQualifiedName,
-        String sdQualifiedName, Id tableId) throws Exception {
+                                         String sdQualifiedName, Id tableId) throws Exception {
         LOG.debug("Filling storage descriptor information for " + storageDesc);
 
         Referenceable sdReferenceable = new Referenceable(HiveDataTypes.HIVE_STORAGEDESC.getName());
@@ -582,9 +606,10 @@ public class HiveMetaStoreBridge {
 
     /**
      * Register the Hive DataModel in Atlas, if not already defined.
-     *
+     * <p>
      * The method checks for the presence of the type {@link HiveDataTypes#HIVE_PROCESS} with the Atlas server.
      * If this type is defined, then we assume the Hive DataModel is registered.
+     *
      * @throws Exception
      */
     public synchronized void registerHiveDataModel() throws Exception {
@@ -594,7 +619,7 @@ public class HiveMetaStoreBridge {
         try {
             dgiClient.getType(FSDataTypes.HDFS_PATH().toString());
             LOG.info("HDFS data model is already registered!");
-        } catch(AtlasServiceException ase) {
+        } catch (AtlasServiceException ase) {
             if (ase.getStatus() == ClientResponse.Status.NOT_FOUND) {
                 //Trigger val definition
                 FSDataModel.main(null);
@@ -609,7 +634,7 @@ public class HiveMetaStoreBridge {
         try {
             dgiClient.getType(HiveDataTypes.HIVE_PROCESS.getName());
             LOG.info("Hive data model is already registered!");
-        } catch(AtlasServiceException ase) {
+        } catch (AtlasServiceException ase) {
             if (ase.getStatus() == ClientResponse.Status.NOT_FOUND) {
                 //Expected in case types do not exist
                 LOG.info("Registering Hive data model");
@@ -619,6 +644,7 @@ public class HiveMetaStoreBridge {
     }
 
     public static void main(String[] argv) throws Exception {
+        HiveBridgeOptions options = new HiveBridgeOptions(argv);
 
         Configuration atlasConf = ApplicationProperties.get();
         String atlasEndpoint = atlasConf.getString(ATLAS_ENDPOINT, DEFAULT_DGI_URL);
@@ -632,7 +658,7 @@ public class HiveMetaStoreBridge {
             atlasClient = new AtlasClient(ugi, ugi.getShortUserName(), atlasEndpoint);
         }
 
-        HiveMetaStoreBridge hiveMetaStoreBridge = new HiveMetaStoreBridge(new HiveConf(), atlasClient);
+        HiveMetaStoreBridge hiveMetaStoreBridge = new HiveMetaStoreBridge(new HiveConf(), atlasClient, options);
         hiveMetaStoreBridge.registerHiveDataModel();
         hiveMetaStoreBridge.importHiveMetadata();
     }

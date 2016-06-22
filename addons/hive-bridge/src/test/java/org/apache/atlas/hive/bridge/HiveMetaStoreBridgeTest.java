@@ -94,6 +94,8 @@ public class HiveMetaStoreBridgeTest {
 
         returnExistingDatabase(TEST_DB_NAME, atlasClient, CLUSTER_NAME);
 
+        Assert.assertNotNull(hiveClient.getTable("default", "test_table"));
+
         // return existing table
         when(atlasClient.searchByDSL(HiveMetaStoreBridge.getTableDSLQuery(CLUSTER_NAME, TEST_DB_NAME, TEST_TABLE_NAME,
                 HiveDataTypes.HIVE_TABLE.getName(), false))).thenReturn(
