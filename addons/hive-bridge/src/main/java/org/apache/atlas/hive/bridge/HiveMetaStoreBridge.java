@@ -646,6 +646,8 @@ public class HiveMetaStoreBridge {
     public static void main(String[] argv) throws Exception {
         HiveBridgeOptions options = new HiveBridgeOptions(argv);
 
+        LOG.info("Options: {}", options);
+
         Configuration atlasConf = ApplicationProperties.get();
         String atlasEndpoint = atlasConf.getString(ATLAS_ENDPOINT, DEFAULT_DGI_URL);
         AtlasClient atlasClient;

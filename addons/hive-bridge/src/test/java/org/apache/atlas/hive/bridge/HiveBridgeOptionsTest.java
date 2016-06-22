@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import org.testng.annotations.Test;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -75,17 +76,22 @@ public class HiveBridgeOptionsTest {
 
     @Test
     public void testDbFilter() {
-        HiveBridgeOptions options = new HiveBridgeOptions(new String[]{"--databases", "db1"});
+        HiveBridgeOptions options = new HiveBridgeOptions(new String[]{"--databases", "db1,db2"});
 
         HiveMetaFilter hmf = options.getFilter();
 
         Set<Filter> dbF = hmf.getDatabaseFilters();
 
-        assertEquals(dbF.size(), 1);
+        assertEquals(dbF.size(), 2);
         assertTrue(dbF.iterator().next() instanceof MatchFilter);
 
-        MatchFilter matcher = (MatchFilter) dbF.iterator().next();
+        Iterator<Filter> iter = dbF.iterator();
+
+        MatchFilter matcher = (MatchFilter) iter.next();
         assertEquals(matcher.getAccepted(), Sets.newHashSet("db1"));
+
+        matcher = (MatchFilter) iter.next();
+        assertEquals(matcher.getAccepted(), Sets.newHashSet("db2"));
 
         Map<String, Collection<Filter>> tableF = options.getFilter().getTableFilters();
 

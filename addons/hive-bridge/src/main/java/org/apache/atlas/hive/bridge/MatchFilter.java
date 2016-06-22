@@ -1,5 +1,6 @@
 package org.apache.atlas.hive.bridge;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -50,5 +51,12 @@ public class MatchFilter implements Filter {
     @Override
     public int hashCode() {
         return accepted.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "MatchFilter{" +
+                "accepted=[" + Joiner.on(", ").join(accepted) +
+                "]}";
     }
 }

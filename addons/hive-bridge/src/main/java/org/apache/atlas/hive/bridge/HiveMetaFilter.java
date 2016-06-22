@@ -1,11 +1,14 @@
 package org.apache.atlas.hive.bridge;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.map.DefaultedMap;
 import org.apache.commons.collections4.map.UnmodifiableMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.commons.collections4.set.UnmodifiableSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -13,6 +16,9 @@ import java.util.*;
  * Created by A744013 on 6/16/16.
  */
 public class HiveMetaFilter {
+
+
+    private static final Logger LOG = LoggerFactory.getLogger(HiveMetaFilter.class);
 
     private final Set<Filter> databaseFilters;
     private final Map<String, Collection<Filter>> tableFilters;
@@ -83,5 +89,13 @@ public class HiveMetaFilter {
 
             return new HiveMetaFilter(set, map);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "HiveMetaFilter{" +
+                "databaseFilters=[" + Joiner.on(", ").join(databaseFilters) +
+                "], tableFilters=[" + Joiner.on(", ").withKeyValueSeparator("->").join(tableFilters) +
+                "]}";
     }
 }

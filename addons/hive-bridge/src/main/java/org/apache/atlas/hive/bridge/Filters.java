@@ -14,10 +14,20 @@ public enum Filters implements Filter {
         public List<String> filter(List<String> toFilter) {
             return Lists.newArrayList(toFilter);
         }
+
+        @Override
+        public String toString() {
+            return "MATCH_ALL";
+        }
     }, MATCH_NONE {
         @Override
         public List<String> filter(List<String> toFilter) {
             return new ArrayList<>();
+        }
+
+        @Override
+        public String toString() {
+            return "MATCH_NONE";
         }
     };
 }
